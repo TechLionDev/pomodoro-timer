@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pomodoro Timer</title>
+    <!-- Add the TailwindCSS CDN link here -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        /* Custom CSS for animations */
+        @keyframes scale {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-b from-blue-500 to-purple-500 min-h-screen flex items-center justify-center">
+    <div class="text-center p-6 bg-white rounded-lg shadow-lg">
+        <h1 class="text-4xl text-blue-900 mb-4">Pomodoro Timer</h1>
+        <div id="timer" class="text-6xl text-blue-900 mb-4">30:00</div>
+        <div class="space-x-4">
+            <button id="startBtn" class="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-md">Start</button>
+            <button id="resetBtn" class="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-md">Reset</button>
+        </div>
+    </div>
+
+    <script>
+        const timerElement = document.getElementById('timer');
+        const startButton = document.getElementById('startBtn');
+        const resetButton = document.getElementById('resetBtn');
+
+        let workTime = 30 * 60; // 30 minutes in seconds
+        let shortBreakTime = 5 * 60; // 5 minutes in seconds
+        let longBreakTime = 15 * 60; // 15 minutes in seconds
+        let isWorking = true; // Indicates whether it's a work session or a break
+        let workSessions = 0;
+        let interval;
+
+        updateTimerDisplay();
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(isWorking ? workTime / 60 : (workSessions % 4 === 0 ? longBreakTime : shortBreakTime) / 60);
+            const seconds = isWorking ? workTime % 60 : (workSessions % 4 === 0 ? longBreakTime : shortBreakTime) % 60;
+            timerElement.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        function startTimer() {
+            if (!interval) {
+                interval = setInterval(updateTimer, 1000);
+                startButton.textContent = 'Pause';
+            }
+        }
+
+        function pauseTimer() {
+            if (interval) {
+                clearInterval(interval);
+                interval = null;
+                startButton.textContent = 'Resume';
+            }
+        }
+
+        function resetTimer() {
+            clearInterval(interval);
+            interval = null;
+            if (!isWorking) {
+                workSessions++;
+            }
+            isWorking = true;
+            updateTimerDisplay();
+            startButton.textContent = 'Start';
+        }
+
+        function updateTimer() {
+            if (isWorking) {
+                if (workTime <= 0) {
+                    workTime = 30 * 60;
+                    isWorking = false;
+                    updateTimerDisplay();
+                    notifyUser();
+                    startTimer();
+                } else {
+                    workTime--;
+                    updateTimerDisplay();
+                }
+            } else {
+                if (workSessions % 4 === 0 && longBreakTime <= 0) {
+                    longBreakTime = 15 * 60;
+                    isWorking = true;
+                    updateTimerDisplay();
+                    notifyUser();
+                    startTimer();
+                } else if (workSessions % 4 !== 0 && shortBreakTime <= 0) {
+                    shortBreakTime = 5 * 60;
+                    isWorking = true;
+                    updateTimerDisplay();
+                    notifyUser();
+                    startTimer();
+                } else {
+                    if (workSessions % 4 === 0) {
+                        longBreakTime--;
+                    } else {
+                        shortBreakTime--;
+                    }
+                }
+            }
+        }
+
+        function notifyUser() {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                const message = isWorking ? 'Work session complete! Take a break.' : 'Break is over. Start your next work session.';
+                new Notification('Pomodoro Timer', { body: message });
+            }
+        }
+
+        // Request notification permission
+        if ('Notification' in window && Notification.permission !== 'granted') {
+            Notification.requestPermission();
+        }
+
+        startButton.addEventListener('click', () => {
+            if (interval) {
+                pauseTimer();
+            } else {
+                startTimer();
+            }
+        });
+
+        resetButton.addEventListener('click', () => {
+            resetTimer();
+        });
+    </script>
+</body>
+</html>
